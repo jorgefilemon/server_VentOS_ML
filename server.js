@@ -18,6 +18,8 @@ require("dotenv").config();
 const lastTicketRoute = require("./routes/lastTicket");
 const loginRoute = require("./routes/login");
 const corteRoute = require("./routes/corte");
+const cashFloatRoute = require("./routes/cashFloat");
+const postCashFloatRoute = require("./routes/postCashFloat");
 const revisarCorteRoute = require("./routes/revisarCorte");
 const expenseRoute = require("./routes/expense");
 const shoeSellsInPeriodRoute = require("./routes/shoeSellsInPeriod");
@@ -417,6 +419,10 @@ app.use("/lastTicket", lastTicketRoute);
 app.use("/revisarCorte", revisarCorteRoute);
 // hace el corte
 app.use("/corte", corteRoute);
+// GET CASH FLOAT
+app.use("/cashFloat", cashFloatRoute);
+// POST CASH FLOAT
+app.use("/postCashFloat", postCashFloatRoute);
 // expense
 app.use("/expense", expenseRoute);
 // calback from mercado libre.
