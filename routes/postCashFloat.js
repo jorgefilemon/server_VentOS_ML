@@ -4,7 +4,19 @@ const db = require("../database");
 
 // shared function
 const insertCashMovement = async (tableName, data) => {
-	const { c1_2, c5, c10, c20, c50, c100, c200, c500, c1000, usu_id } = data;
+	const {
+		c1_2,
+		c5,
+		c10,
+		c20,
+		c50,
+		c100,
+		c200,
+		c500,
+		c1000,
+		usu_id,
+		latestColumn,
+	} = data;
 
 	const getLocalSQLDateTime = () => {
 		const now = new Date();
@@ -14,27 +26,75 @@ const insertCashMovement = async (tableName, data) => {
 			.replace("T", " ");
 	};
 
-	const sql = `
-		INSERT INTO ${tableName} (
-			fecha, c1_2, c5, c10, c20, c50, c100, c200, c500, c1000, usu_id
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`;
+	// convert blanks to 0
+	const vals = {
+		c1_2: c1_2 === "" ? 0 : Number(c1_2),
+		c5: c5 === "" ? 0 : Number(c5),
+		c10: c10 === "" ? 0 : Number(c10),
+		c20: c20 === "" ? 0 : Number(c20),
+		c50: c50 === "" ? 0 : Number(c50),
+		c100: c100 === "" ? 0 : Number(c100),
+		c200: c200 === "" ? 0 : Number(c200),
+		c500: c500 === "" ? 0 : Number(c500),
+		c1000: c1000 === "" ? 0 : Number(c1000),
+	};
 
-	const values = [
-		getLocalSQLDateTime(),
-		c1_2 === "" ? 0 : c1_2,
-		c5 === "" ? 0 : c5,
-		c10 === "" ? 0 : c10,
-		c20 === "" ? 0 : c20,
-		c50 === "" ? 0 : c50,
-		c100 === "" ? 0 : c100,
-		c200 === "" ? 0 : c200,
-		c500 === "" ? 0 : c500,
-		c1000 === "" ? 0 : c1000,
-		usu_id,
-	];
+	if (latestColumn === "1" || latestColumn === 1) {
+		// ✅ Update existing row instead of insert
+		const updateSQL = `
+			UPDATE ${tableName}
+			SET 
+				c1_2 = c1_2 + ?,
+				c5 = c5 + ?,
+				c10 = c10 + ?,
+				c20 = c20 + ?,
+				c50 = c50 + ?,
+				c100 = c100 + ?,
+				c200 = c200 + ?,
+				c500 = c500 + ?,
+				c1000 = c1000 + ?
+			WHERE startingCashcol = 1
+			AND DATE(fecha) = CURDATE()
+			AND rcc_id IS NULL
+		`;
 
-	await db.execute(sql, values);
+		const updateValues = [
+			vals.c1_2,
+			vals.c5,
+			vals.c10,
+			vals.c20,
+			vals.c50,
+			vals.c100,
+			vals.c200,
+			vals.c500,
+			vals.c1000,
+		];
+
+		await db.execute(updateSQL, updateValues);
+	} else {
+		// ✅ Insert new row (normal behavior)
+		const insertSQL = `
+			INSERT INTO ${tableName} (
+				fecha, c1_2, c5, c10, c20, c50, c100, c200, c500, c1000, usu_id
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`;
+
+		const insertValues = [
+			getLocalSQLDateTime(),
+			vals.c1_2,
+			vals.c5,
+			vals.c10,
+			vals.c20,
+			vals.c50,
+			vals.c100,
+			vals.c200,
+			vals.c500,
+			vals.c1000,
+			usu_id,
+		];
+
+		await db.execute(insertSQL, insertValues);
+	}
 };
 
 // POST /cashFloat/cashFloat

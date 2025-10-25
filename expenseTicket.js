@@ -1,6 +1,6 @@
 // const printer = require("@thiagoelg/node-printer");
-// const thermalPrinter = require('node-thermal-printer').printer;
-// const Types = require('node-thermal-printer').types;
+const thermalPrinter = require("node-thermal-printer").printer;
+const Types = require("node-thermal-printer").types;
 const moment = require("moment");
 
 function expenseTicket(fecha, usu_name, expenseList) {

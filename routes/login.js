@@ -28,15 +28,28 @@ router.post("/", async (req, res) => {
 			// CREATE TOKEN
 			const token = createTokens(myResult);
 
+			// Fetch latest cash total
+			const [cashResult] = await conn.query(`
+				SELECT (c1_2 + c5 + c10 + c20 + c50 + c100 + c200 + c500 + c1000) AS total
+				FROM sicar.cashfloat
+				ORDER BY cashMov_id DESC
+				LIMIT 1`);
+
+			const latestCashTotal =
+				cashResult.length > 0 ? cashResult[0].total : 0;
+
 			// create cookie
-			// cookie name , token that we storing in cookie
 			res.cookie("access_token", token, {
 				httpOnly: true,
 				maxAge: 86400000,
 				sameSite: "none",
 				secure: true, // Remove this for HTTP frontend
 			});
-			res.send({ cookie: "cookie created", logged: true });
+			res.send({
+				cookie: "cookie created",
+				logged: true,
+				cashTotal: latestCashTotal,
+			});
 		} else {
 			res.send({ message: "Usuario o contraseña incorrectos" });
 		}

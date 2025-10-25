@@ -1,15 +1,15 @@
-// const printer = require("@thiagoelg/node-printer");
-// const thermalPrinter = require("node-thermal-printer").printer;
-// const Types = require("node-thermal-printer").types;
+const thermalPrinter = require("node-thermal-printer").printer;
+const Types = require("node-thermal-printer").types;
+const { sendToPrinter } = require("./utils/networkPrinter");
 const moment = require("moment");
 
 function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
-	//console.log("this is invoice", invoice)
 	const venta = invoice[0];
 
 	const onlyDate = moment(venta.fecha).locale("es").format("/DD/YYYY");
 	const month = moment(venta.fecha).locale("es").format("MMM");
 	const mesSinPunto = month.replace(".", "").toUpperCase();
+
 	console.log("la hora antes de moment", invoice[0].fecha); // 12:57
 	const onlyTime = moment(venta.fecha).format("h:mm:ss A"); // hora local
 
@@ -79,7 +79,7 @@ function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
 				cols: 1,
 			},
 			{
-				text: parseInt(detallev.precioCon).toFixed(2),
+				text: Number(detallev.precioCon).toFixed(2),
 				align: "RIGHT",
 				width: 0.3,
 				cols: 1,
@@ -91,7 +91,7 @@ function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
 				cols: 1,
 			},
 			{
-				text: parseInt(detallev.importeCon).toFixed(2),
+				text: Number(detallev.importeCon).toFixed(2),
 				align: "RIGHT",
 				width: 0.35,
 				cols: 1,
@@ -110,7 +110,7 @@ function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
 	print.tableCustom([
 		{ text: "EFECTIVO:", align: "RIGHT", width: 0.5, cols: 1 },
 		{
-			text: parseInt(pagoEfectivo).toFixed(2),
+			text: Number(pagoEfectivo).toFixed(2),
 			align: "RIGHT",
 			width: 0.5,
 			cols: 1,
@@ -139,7 +139,10 @@ y entrega del producto.
 La garantia se hara efectiva 
 unicamente sobre defectos de 
 fabricación y/o manufactura, y no 
-por el mal uso del calzado.`);
+por el mal uso del calzado;
+por ejemplo meter el calzado
+en agua, si no esta especifico
+para esto.`);
 
 	print.println(`
 Los cambios se efectuaran
@@ -156,19 +159,10 @@ empaque original.
 	print.cut();
 
 	print.openCashDrawer();
-	const data = print.getBuffer();
 
-	printer.printDirect({
-		data: data,
-		type: "RAW",
-		printer: "epson tm-t81 Receipt",
-		success: function (jobID) {
-			console.log("sent to printer with ID: " + jobID);
-		},
-		error: function (err) {
-			console.log(err);
-		},
-	});
+	Promise.resolve(print.getBuffer())
+		.then(sendToPrinter)
+		.catch((err) => console.error("getBuffer error:", err));
 }
 
 module.exports = realizarTicket;

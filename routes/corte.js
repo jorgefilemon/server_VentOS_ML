@@ -2,11 +2,34 @@ const express = require("express");
 const router = express.Router();
 const db = require("../database");
 const corteTicket = require("../corteTicket");
+const sql = String.raw; // to avoid sql error from the slq tag
 
 router.post("/", async (req, res) => {
-	const { usu_id } = req.body;
+	const { usu_id, corteLabel } = req.body;
+	const {
+		c1_2: dejar_c1_2 = "",
+		c5: dejar_c5 = "",
+		c10: dejar_c10 = "",
+		c20: dejar_c20 = "",
+		c50: dejar_c50 = "",
+		c100: dejar_c100 = "",
+		c200: dejar_c200 = "",
+		c500: dejar_c500 = "",
+		c1000: dejar_c1000 = "",
+	} = req.body.dejar;
 
-	console.log("user", usu_id);
+	const {
+		c1_2: guardar_c1_2 = "",
+		c5: guardar_c5 = "",
+		c10: guardar_c10 = "",
+		c20: guardar_c20 = "",
+		c50: guardar_c50 = "",
+		c100: guardar_c100 = "",
+		c200: guardar_c200 = "",
+		c500: guardar_c500 = "",
+		c1000: guardar_c1000 = "",
+	} = req.body.guardar;
+
 	const conn = await db.getConnection();
 
 	await conn.query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
@@ -15,8 +38,8 @@ router.post("/", async (req, res) => {
 	try {
 		//////////////// TOTAL CASH//////////////////
 		const [cash] = await conn.query(
-			`SELECT SUM(CASE WHEN (movimiento.tipo = 1) THEN movimiento.total ELSE (0 - total) END) as cash 
-      FROM movimiento WHERE (((cor_id IS NULL) AND (movimiento.caj_id = 1)) AND (tpa_id = 1))`
+			sql`SELECT SUM(CASE WHEN (movimiento.tipo = 1) THEN movimiento.total ELSE (0 - total) END) as cash 
+      			FROM movimiento WHERE (((cor_id IS NULL) AND (movimiento.caj_id = 1)) AND (tpa_id = 1))`
 		);
 
 		let cashTotal = 0;
@@ -25,7 +48,7 @@ router.post("/", async (req, res) => {
 
 		/////////////// TOTAL card //////////
 		const [card] = await conn.query(
-			`SELECT SUM(CASE  WHEN (tipo = 1) THEN total ELSE (0 - total) END)as card FROM movimiento WHERE (((cor_id IS NULL) AND (caj_id = 1)) AND (tpa_id = 6))`
+			sql`SELECT SUM(CASE  WHEN (tipo = 1) THEN total ELSE (0 - total) END)as card FROM movimiento WHERE (((cor_id IS NULL) AND (caj_id = 1)) AND (tpa_id = 6))`
 		);
 		let cardTotal = 0;
 		if (card[0].card != null) cardTotal = parseFloat(card[0].card);
@@ -44,10 +67,10 @@ router.post("/", async (req, res) => {
 
 		//////////////////////  EFECTIVO + TARJETA ////////////////////
 		const [cashAndCard] = await conn.query(
-			`SELECT 
+			sql`SELECT 
           ifnull(SUM(total), 0) 
           as total 
-        FROM 
+        	FROM 
           movimiento 
           WHERE  tipo=1 
           and cor_id IS NULL 
@@ -62,15 +85,16 @@ router.post("/", async (req, res) => {
 		///////////////// SUMA DE DINERO SACADO DE LA CAJA ////////////////
 
 		const [efectivoSacado] = await conn.query(
-			`SELECT 
-          ifnull(SUM(total), 0) 
-          as total 
-        FROM 
-          movimiento 
-          WHERE  tipo=2 
-          and cor_id IS NULL 
-          AND (caj_id = 1)  
-          AND (tpa_id = 1);`
+			sql`
+			SELECT 
+			ifnull(SUM(total), 0) 
+			as total 
+			FROM 
+			movimiento 
+			WHERE  tipo=2 
+			and cor_id IS NULL 
+			AND (caj_id = 1)  
+			AND (tpa_id = 1);`
 		);
 
 		const efectivoSacadoValor = efectivoSacado[0].total;
@@ -79,17 +103,16 @@ router.post("/", async (req, res) => {
 
 		/// DEVOLUCION DE EFECTIVO
 
-		const [cambio] = await conn.query(`
-    
- select ifnull(sum(detallev.importecon), 0) as cambio
- from venta
- left join detallev
- on venta.ven_id = detallev.ven_id
- where
- venta.rcc_id is null
- and detallev.descripcion like "%devolucion%"
- and venta.status = 1
-`);
+		const [cambio] = await conn.query(sql`
+			select ifnull(sum(detallev.importecon), 0) as cambio
+			from venta
+			left join detallev
+			on venta.ven_id = detallev.ven_id
+			where
+			venta.rcc_id is null
+			and detallev.descripcion like "%devolucion%"
+			and venta.status = 1
+		`);
 
 		let cambioCliente = 0;
 		if (cambio[0].cambio != null)
@@ -99,13 +122,13 @@ router.post("/", async (req, res) => {
 		///////////////  1 INSERT - CORTECAJA ////////////////////////////////////////////////////
 
 		await conn.query(
-			`INSERT INTO corteCaja (
-        calculado, contado, diferencia,
-        fecha,     retiro,  caj_id
-        )
-        VALUES
-        (?, 0.00, ?,
-         ?, 0.00, 1)`,
+			sql`INSERT INTO corteCaja (
+			calculado, contado, diferencia,
+			fecha,     retiro,  caj_id
+			)
+			VALUES
+			(?, 0.00, ?,
+			?, 0.00, 1)`,
 			[corteTotal, corteTotal * -1, time]
 		);
 
@@ -299,13 +322,13 @@ router.post("/", async (req, res) => {
 		const calculadoEfectivo = cashTotal - salMov - ventaCanceladaEfectivo;
 
 		await conn.query(
-			`INSERT INTO corteTipoPago (
-      calculado, contado, diferencia, 
-      retiro,    cor_id,  tpa_id) 
-      VALUES 
-      (?, 0.00, ?,
-       0.00,    ?,  1
-       )`,
+			sql`INSERT INTO corteTipoPago (
+			calculado, contado, diferencia, 
+			retiro,    cor_id,  tpa_id) 
+			VALUES 
+			(?, 0.00, ?,
+			0.00,    ?,  1
+			)`,
 			[calculadoEfectivo, calculadoEfectivo * -1, cor_id]
 		);
 
@@ -314,25 +337,25 @@ router.post("/", async (req, res) => {
 		const calculadoTarjeta = cardTotal - ventaCanceladaTarjeta;
 
 		await conn.query(
-			`INSERT INTO corteTipoPago (
-      calculado, contado, diferencia, 
-      retiro,    cor_id,  tpa_id) 
-      VALUES 
-      (
-       ?,    0.00, ?,
-       0.00, ?,    6
-      )`,
+			sql`INSERT INTO corteTipoPago (
+			calculado, contado, diferencia, 
+			retiro,    cor_id,  tpa_id) 
+			VALUES 
+			(
+			?,    0.00, ?,
+			0.00, ?,    6
+			)`,
 			[calculadoTarjeta, calculadoTarjeta * -1, cor_id]
 		);
 
 		/// nombre de usuario.
 		const [nombre] = await conn.query(
-			`select nombre from usuario where usu_id =? `,
+			sql`select nombre from usuario where usu_id =? `,
 			[usu_id]
 		);
 
 		const [expenseList] = await conn.query(
-			`select * from expense where rcc_id = ? order by type`,
+			sql`select * from expense where rcc_id = ? order by type`,
 			[rcc_id]
 		);
 
@@ -340,7 +363,93 @@ router.post("/", async (req, res) => {
 
 		///  UPDATE CAJA SET IT TO 0 //////////////////////////
 
-		await conn.query(`UPDATE caja SET total = 0 WHERE (1 = caj_id)`);
+		await conn.query(sql`UPDATE caja SET total = 0 WHERE (1 = caj_id)`);
+
+		/// select every row that has rcc_id as null
+
+		/// INSERT CASHFLOAT AND RCC_ID
+
+		const queryDejar = `
+		INSERT INTO cashfloat (
+		  fecha, c1_2, c5, c10, c20, c50, c100, c200, c500, c1000, usu_id, rcc_id
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	  `;
+
+		const values = [
+			time,
+			dejar_c1_2 === "" ? 0 : dejar_c1_2,
+			dejar_c5 === "" ? 0 : dejar_c5,
+			dejar_c10 === "" ? 0 : dejar_c10,
+			dejar_c20 === "" ? 0 : dejar_c20,
+			dejar_c50 === "" ? 0 : dejar_c50,
+			dejar_c100 === "" ? 0 : dejar_c100,
+			dejar_c200 === "" ? 0 : dejar_c200,
+			dejar_c500 === "" ? 0 : dejar_c500,
+			dejar_c1000 === "" ? 0 : dejar_c1000,
+			usu_id,
+			rcc_id,
+		];
+
+		await conn.query(queryDejar, values);
+
+		await conn.query(
+			`UPDATE cashfloat SET rcc_id = ? WHERE rcc_id IS NULL`,
+			[rcc_id]
+		);
+		console.log("15) update cashfloat with rcc_id", rcc_id);
+
+		/// INSERT CASHFLOAT WITHOUT RCC_ID
+
+		const queryDejarNext = `
+		INSERT INTO cashfloat (
+		  fecha, c1_2, c5, c10, c20, c50, c100, c200, c500, c1000, usu_id, startingCashcol
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)  
+	  `;
+
+		const valuesNext = [
+			time,
+			dejar_c1_2 === "" ? 0 : dejar_c1_2,
+			dejar_c5 === "" ? 0 : dejar_c5,
+			dejar_c10 === "" ? 0 : dejar_c10,
+			dejar_c20 === "" ? 0 : dejar_c20,
+			dejar_c50 === "" ? 0 : dejar_c50,
+			dejar_c100 === "" ? 0 : dejar_c100,
+			dejar_c200 === "" ? 0 : dejar_c200,
+			dejar_c500 === "" ? 0 : dejar_c500,
+			dejar_c1000 === "" ? 0 : dejar_c1000,
+			usu_id,
+			1, // startingCashcol
+		];
+
+		await conn.query(queryDejarNext, valuesNext);
+
+		/// INSERT CASHPULL AND RCC_ID
+
+		const queryGuardar = `
+		INSERT INTO cashpull (
+		  fecha, c1_2, c5, c10, c20, c50, c100, c200, c500, c1000, usu_id, rcc_id
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	  `;
+		const valuesGuardar = [
+			time,
+			guardar_c1_2 === "" ? 0 : guardar_c1_2,
+			guardar_c5 === "" ? 0 : guardar_c5,
+			guardar_c10 === "" ? 0 : guardar_c10,
+			guardar_c20 === "" ? 0 : guardar_c20,
+			guardar_c50 === "" ? 0 : guardar_c50,
+			guardar_c100 === "" ? 0 : guardar_c100,
+			guardar_c200 === "" ? 0 : guardar_c200,
+			guardar_c500 === "" ? 0 : guardar_c500,
+			guardar_c1000 === "" ? 0 : guardar_c1000,
+			usu_id,
+			rcc_id,
+		];
+		await conn.query(queryGuardar, valuesGuardar);
+
+		await conn.query(
+			`UPDATE cashpull SET rcc_id = ? WHERE rcc_id IS NULL`,
+			[rcc_id]
+		);
 
 		/// COMMIT QUERIES ////////////////
 
@@ -354,7 +463,10 @@ router.post("/", async (req, res) => {
 			nombreUsuario,
 			time,
 			cambioCliente,
-			expenseList
+			expenseList,
+			values,
+			valuesGuardar,
+			corteLabel
 		);
 
 		console.log(" cash desk closing has been successful");

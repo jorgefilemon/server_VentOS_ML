@@ -4,10 +4,11 @@ const db = require("../database");
 
 // Shared function to get today's entries and total cash from a given table
 const getCashData = async (tableName) => {
-	// Query 1: today's entries
+	// Query 1: today's all agregar efectivos
 	const entriesQuery = `
 		SELECT * FROM ${tableName}
 		WHERE DATE(fecha) = CURDATE()
+		AND rcc_id IS NULL
 	`;
 	const [cash] = await db.execute(entriesQuery);
 
@@ -28,13 +29,27 @@ const getCashData = async (tableName) => {
 		WHERE DATE(fecha) = CURDATE()
 		  AND rcc_id IS NULL
 	`;
+
 	const [totalResult] = await db.execute(totalQuery);
 	const totalCash = totalResult[0]?.total_cash ?? 0;
 
-	return { cash, totalCash };
+	// select last row to see if its an update to the row or a new row
+	const latestRow = `
+	SELECT startingCashcol
+	FROM ${tableName}
+	WHERE DATE(fecha) = CURDATE()
+	AND rcc_id IS NULL
+	ORDER BY fecha DESC
+	LIMIT 1
+
+`;
+	const [rows] = await db.execute(latestRow);
+	const startingCash = rows.length ? rows[0].startingCashcol : null;
+
+	return { cash, totalCash, startingCash };
 };
 
-// GET /cashFloat
+// GET / cashFloat;
 router.get("/cashFloat", async (req, res) => {
 	try {
 		const data = await getCashData("cashfloat");

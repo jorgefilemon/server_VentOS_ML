@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../database");
+const getCashData = require("../utils/getCashData");
 
 router.get("/", async (req, res) => {
 	const conn = await db.getConnection();
@@ -106,7 +107,9 @@ router.get("/", async (req, res) => {
 
 		const expenseTotal = parseFloat(rows[0].total ?? 0);
 
-		console.log("this is row", rows);
+		const { totalCash: totalCashFloat } = await getCashData("cashfloat");
+		const { totalCash: totalCashPulled } = await getCashData("cashpull");
+
 		// console.log(cambioCliente)
 		await conn.commit();
 
@@ -118,6 +121,8 @@ router.get("/", async (req, res) => {
 			cambioCliente: cambioCliente,
 			expense: expense,
 			expenseTotal: expenseTotal,
+			totalCashFloat,
+			totalCashPulled,
 		});
 		conn.release();
 	} catch (err) {

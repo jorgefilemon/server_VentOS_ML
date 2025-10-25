@@ -21,6 +21,11 @@
 		"moment": "^2.29.4",
 		"mysql2": "^2.3.0",
 		"node-thermal-printer": "^4.1.2",
-		"node-windows": "*"
+		"node-windows": "*",
+		"sql-template-tag": "^5.2.1"
+	},
+
+	"devDependencies": {
+		"prettier": "^2.8.8"
 	}
 }

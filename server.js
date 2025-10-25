@@ -1,4 +1,5 @@
 const express = require("express");
+require("dotenv").config();
 const app = express();
 const cors = require("cors");
 const cookieParser = require("cookie-parser"); // to parse the cookie
@@ -12,7 +13,6 @@ const https = require("https");
 const path = require("path");
 const fs = require("fs");
 
-require("dotenv").config();
 // R O U T E S //
 
 const lastTicketRoute = require("./routes/lastTicket");
@@ -57,6 +57,7 @@ app.get("/verify", async (req, res, next) => {
 	const isConnected = Boolean(process.env.ACCESS_TOKEN); // Check if access token exists
 	try {
 		const { usu_id, nombre } = jwt.verify(token, "382u397429&$");
+
 		res.json({
 			usu_id: usu_id,
 			nombre: nombre,
@@ -390,15 +391,15 @@ app.post("/venta", async (req, res) => {
 			}
 		}
 
-		//realizarTicket(invoice, detallev, mov, pagoEfectivo);
+		realizarTicket(invoice, detallev, mov, pagoEfectivo);
 
 		res.json({ venta: invoice, detallev: detallev, movimiento: mov });
 
-		//module.exports = {
-		// invoice,
-		// detallev,
-		//  mov
-		//};
+		module.exports = {
+			invoice,
+			detallev,
+			mov,
+		};
 
 		console.log("detallev", detallev);
 		console.log("mov", mov);
