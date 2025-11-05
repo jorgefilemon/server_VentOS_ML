@@ -140,7 +140,7 @@ function realizarCorte(
 	const filteredValuesGuardar = valuesGuardar.filter(
 		(_, i) => !skipIndices.includes(i)
 	);
-
+	print.newLine();
 	filteredValues.forEach((amount, i) => {
 		const displayCaja =
 			i === 0

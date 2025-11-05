@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../database");
+const pullCashTicket = require("../pullCashTicket");
 
 // shared function
 const insertCashMovement = async (tableName, data) => {
@@ -111,7 +112,22 @@ router.post("/cashFloat", async (req, res) => {
 // POST /cashFloat/pullCash
 router.post("/pullCash", async (req, res) => {
 	try {
+		const { usu_id } = req.body;
+		const time = new Date();
+
+		// 1️⃣ Get user's name from DB
+		const [rows] = await db.execute(
+			"SELECT nombre FROM usuario WHERE usu_id = ? LIMIT 1",
+			[usu_id]
+		);
+		const nombreUsuario = rows?.[0]?.nombre || "Usuario desconocido";
+
+		// 2️⃣ Save cash movement
 		await insertCashMovement("cashpull", req.body);
+
+		// 3️⃣ Print the pull cash ticket
+		pullCashTicket(nombreUsuario, time, req.body);
+
 		res.status(200).json({ message: "pullCash inserted successfully" });
 	} catch (err) {
 		console.error("Error inserting into pullCash:", err);
