@@ -1,7 +1,8 @@
-// const { sendToPrinter } = require("./utils/networkPrinter");
+//  
 const thermalPrinter = require("node-thermal-printer").printer;
 const Types = require("node-thermal-printer").types;
 const moment = require("moment");
+require("dotenv").config();
 
 function realizarCorte(
 	cashTotal,
@@ -28,7 +29,7 @@ function realizarCorte(
 	const print = new thermalPrinter({
 		type: Types.EPSON,
 		width: 38,
-		interface: "\\\\jorge-PC\\TM88",
+		interface: process.env.PRINTER_INTERFACE,
 	});
 
 	print.alignCenter();

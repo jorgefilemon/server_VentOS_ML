@@ -49,7 +49,7 @@ function expenseTicket(fecha, usu_name, expenseList) {
 				cols: 1,
 			},
 			{
-				text: parseInt(expense.cantidad).toFixed(2),
+				text: parseFloat(expense.cantidad).toFixed(2),
 				align: "RIGHT",
 				width: 0.3,
 				cols: 1,
