@@ -3,14 +3,15 @@ const os = require("os");
 const path = require("path");
 const { execFile } = require("child_process");
 
-// Configuration
-const PRINTER = "\\\\jorge-PC\\TM88";
+const PRINTER = "\\\\Optiplex990\\TM88";
 const QUEUE = path.join(os.tmpdir(), "ticket_queue");
 
-// Ensure queue exists
-fs.existsSync(QUEUE) || fs.mkdirSync(QUEUE, { recursive: true });
+let printChain = Promise.resolve();
 
-// Core functions
+if (!fs.existsSync(QUEUE)) {
+	fs.mkdirSync(QUEUE, { recursive: true });
+}
+
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const runCopy = (file) =>
@@ -23,32 +24,50 @@ const runCopy = (file) =>
 		);
 	});
 
-async function sendToPrinter(data) {
-	const tmpFile = path.join(os.tmpdir(), `ticket_${Date.now()}.bin`);
+function enqueuePrint(task) {
+	printChain = printChain.then(task, task);
+	return printChain;
+}
+
+async function sendToPrinterInternal(data) {
+	const timestamp = Date.now();
+	const tmpFile = path.join(os.tmpdir(), `ticket_${timestamp}.bin`);
 	fs.writeFileSync(tmpFile, data);
 
 	try {
 		await runCopy(tmpFile);
-		console.log("✅ Printed.");
+		console.log("Printed.");
 		return "ok";
-	} catch {
+	} catch (error) {
+		console.warn("First print attempt failed:", error.message);
+
 		try {
-			await delay(1000); // 800ms stabilization period
+			await delay(1200);
 			await runCopy(tmpFile);
-			console.log("✅ Printed after retry.");
+			console.log("Printed after retry.");
 			return "ok";
-		} catch {
+		} catch (retryError) {
 			const queued = path.join(QUEUE, `ticket_${Date.now()}.bin`);
 			fs.writeFileSync(queued, data);
 			console.warn(
-				"⚠️ Printer offline. Ticket queued:",
-				path.basename(queued)
+				"Printer offline. Ticket queued:",
+				path.basename(queued),
+				retryError.message
 			);
 			return "queued";
 		}
 	} finally {
-		fs.existsSync(tmpFile) && fs.unlinkSync(tmpFile);
+		if (fs.existsSync(tmpFile)) {
+			fs.unlinkSync(tmpFile);
+		}
 	}
 }
 
-module.exports = { sendToPrinter };
+function sendToPrinter(data) {
+	return enqueuePrint(() => sendToPrinterInternal(data));
+}
+
+module.exports = {
+	sendToPrinter,
+	delay,
+};

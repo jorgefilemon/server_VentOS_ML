@@ -1,7 +1,6 @@
-// const printer = require("@thiagoelg/node-printer");
-// const thermalPrinter = require('node-thermal-printer').printer;
-// const Types = require('node-thermal-printer').types;
+const { printer: thermalPrinter, types: Types } = require("node-thermal-printer");
 const moment = require("moment");
+// const { sendToPrinter } = require("./utils/networkPrinter");
 
 function ultimoTicket(invoice, detallev, mov) {
 	console.log("this is invoice", invoice);
@@ -10,13 +9,12 @@ function ultimoTicket(invoice, detallev, mov) {
 	const onlyDate = moment(venta.fecha).locale("es").format("/DD/YYYY");
 	const month = moment(venta.fecha).locale("es").format("MMM");
 	const mesSinPunto = month.replace(".", "").toUpperCase();
-	console.log("la hora antes de moment", invoice[0].fecha); // 12:57
-	const onlyTime = moment(venta.fecha).utc().format("h:mm:ss A"); // hora local
+	console.log("la hora antes de moment", invoice[0].fecha);
+	const onlyTime = moment(venta.fecha).utc().format("h:mm:ss A");
 
 	console.log("time from ticket js", onlyTime);
 
 	const detalleven = detallev;
-
 	const movDescripcion = mov;
 
 	let efectivo = "0.00";
@@ -24,7 +22,7 @@ function ultimoTicket(invoice, detallev, mov) {
 		(paymentType) => paymentType.tpa_id === 1
 	);
 	if (hayEfectivo) {
-		efectivo = parseFloat(hayEfectivo.total) + parseFloat(venta.cambio); // Convert strings to numbers
+		efectivo = parseFloat(hayEfectivo.total) + parseFloat(venta.cambio);
 	}
 
 	let tarjeta = "0.00";
@@ -35,7 +33,8 @@ function ultimoTicket(invoice, detallev, mov) {
 
 	const print = new thermalPrinter({
 		type: Types.EPSON,
-		width: 42,
+		width: 39,
+		interface: "\\\\Optiplex990\\TM88",
 	});
 
 	print.print("\x1b\x33\x30");
@@ -60,8 +59,7 @@ function ultimoTicket(invoice, detallev, mov) {
 	print.drawLine();
 
 	print.tableCustom([
-		// Prints table with custom settings (text, align, width, cols, bold)
-		{ text: "CANT", align: "CENTER", width: 0.1, cols: 1 },
+		{ text: "CANT", align: "CENTER", width: 0.2, cols: 1 },
 		{ text: "PCIO U.", align: "RIGHT", width: 0.3, cols: 1 },
 		{ text: "%DESC", align: "RIGHT", width: 0.2, cols: 1 },
 		{ text: "IMPORTE", align: "RIGHT", width: 0.3, cols: 1 },
@@ -69,31 +67,31 @@ function ultimoTicket(invoice, detallev, mov) {
 	print.drawLine();
 	print.newLine();
 
-	for (let detallev of detalleven) {
+	for (const item of detalleven) {
 		print.alignLeft();
-		print.println(detallev.descripcion);
+		print.println(item.descripcion);
 		print.alignCenter();
 		print.tableCustom([
 			{
-				text: parseInt(detallev.cantidad).toFixed(0),
+				text: parseInt(item.cantidad).toFixed(0),
 				align: "RIGHT",
 				width: 0.1,
 				cols: 1,
 			},
 			{
-				text: parseInt(detallev.precioCon).toFixed(2),
+				text: parseInt(item.precioCon).toFixed(2),
 				align: "RIGHT",
 				width: 0.3,
 				cols: 1,
 			},
 			{
-				text: detallev.descPorcentaje + "%",
+				text: item.descPorcentaje + "%",
 				align: "RIGHT",
 				width: 0.2,
 				cols: 1,
 			},
 			{
-				text: parseInt(detallev.importeCon).toFixed(2),
+				text: parseInt(item.importeCon).toFixed(2),
 				align: "RIGHT",
 				width: 0.35,
 				cols: 1,
@@ -131,7 +129,7 @@ function ultimoTicket(invoice, detallev, mov) {
 	print.println("CLIENTE");
 	print.println("Publico en General");
 	print.newLine();
-	print.println("¡GRACIAS POR SU COMPRA!");
+	print.println("�GRACIAS POR SU COMPRA!");
 	print.newLine();
 	print.println("GARANTIA DEL CALZADO:");
 	print.println(`
@@ -140,7 +138,7 @@ dias a partir de la fecha de compra
 y entrega del producto. 
 La garantia se hara efectiva 
 unicamente sobre defectos de 
-fabricación y/o manufactura, y no 
+fabricaci�n y/o manufactura, y no 
 por el mal uso del calzado.`);
 
 	print.println(`
@@ -158,19 +156,11 @@ empaque original.
 	print.cut();
 	print.openCashDrawer();
 
-	const data = print.getBuffer();
+	print.execute();
 
-	printer.printDirect({
-		data: data,
-		type: "RAW",
-		printer: "epson tm-t81 Receipt",
-		success: function (jobID) {
-			console.log("sent to printer with ID: " + jobID);
-		},
-		error: function (err) {
-			console.log(err);
-		},
-	});
+// Promise.resolve(print.getBuffer())
+//   .then(sendToPrinter)
+//   .catch((err) => console.error("print pipeline error:", err));
 }
 
 module.exports = ultimoTicket;

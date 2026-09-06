@@ -1,6 +1,5 @@
-const thermalPrinter = require("node-thermal-printer").printer;
-const Types = require("node-thermal-printer").types;
-const { sendToPrinter } = require("./utils/networkPrinter");
+const { printer: thermalPrinter, types: Types } = require("node-thermal-printer");
+
 const moment = require("moment");
 
 function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
@@ -11,7 +10,7 @@ function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
 	const mesSinPunto = month.replace(".", "").toUpperCase();
 
 	console.log("la hora antes de moment", invoice[0].fecha); // 12:57
-	const onlyTime = moment(venta.fecha).format("h:mm:ss A"); // hora local
+	const onlyTime = moment(venta.fecha).utc().format("h:mm:ss A");
 
 	console.log("time from ticket js", onlyTime);
 
@@ -33,7 +32,8 @@ function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
 
 	const print = new thermalPrinter({
 		type: Types.EPSON,
-		width: 42,
+		width: 38,
+		interface: "\\\\Optiplex990\\TM88",
 	});
 
 	print.print("\x1b\x33\x30");
@@ -59,7 +59,7 @@ function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
 
 	print.tableCustom([
 		// Prints table with custom settings (text, align, width, cols, bold)
-		{ text: "CANT", align: "CENTER", width: 0.1, cols: 1 },
+		{ text: "CANT", align: "CENTER", width: 0.2, cols: 1 },
 		{ text: "PCIO U.", align: "RIGHT", width: 0.3, cols: 1 },
 		{ text: "%DESC", align: "RIGHT", width: 0.2, cols: 1 },
 		{ text: "IMPORTE", align: "RIGHT", width: 0.3, cols: 1 },
@@ -160,9 +160,11 @@ empaque original.
 
 	print.openCashDrawer();
 
-	Promise.resolve(print.getBuffer())
-		.then(sendToPrinter)
-		.catch((err) => console.error("getBuffer error:", err));
+	print.execute();
+
+	// Promise.resolve(print.getBuffer())
+	// 	.then(sendToPrinter)
+	// 	.catch((err) => console.error("getBuffer error:", err));
 }
 
 module.exports = realizarTicket;

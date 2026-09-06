@@ -8,7 +8,7 @@ const db = mysql.createPool({
 	host: process.env.HOST,
 	password: process.env.PASSWORD,
 	database: process.env.DATABASE,
-	port: process.env.PORT,
+	port: process.env.MYSQL_PORT,
 	multipleStatements: false,
 	timezone: "Z", // optional, i had it on, but change queries so i can have it off.
 });

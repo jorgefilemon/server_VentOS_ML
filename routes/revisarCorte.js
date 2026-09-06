@@ -13,10 +13,10 @@ router.get("/", async (req, res) => {
 		//////////////// TOTAL CASH//////////////////
 		const [cash] = await conn.query(
 			`SELECT SUM(
-        CASE WHEN movimiento.tipo = 1 THEN movimiento.total ELSE - movimiento.total END
+        CASE WHEN movimiento.tipo = 1 THEN movimiento.total END
     ) AS cash 
     FROM movimiento 
-    WHERE cor_id IS NULL AND movimiento.caj_id = 1 AND tpa_id = 1;`
+    WHERE cor_id IS NULL AND movimiento.caj_id = 1 AND tpa_id = 1 AND status = 1;`
 		);
 		let cashTotal = 0;
 		if (cash[0].cash != null) cashTotal = parseFloat(cash[0].cash);

@@ -1,4 +1,4 @@
-// const printer = require("@thiagoelg/node-printer");
+// const { sendToPrinter } = require("./utils/networkPrinter");
 const thermalPrinter = require("node-thermal-printer").printer;
 const Types = require("node-thermal-printer").types;
 const moment = require("moment");
@@ -19,7 +19,8 @@ function expenseTicket(fecha, usu_name, expenseList) {
 	// set thermalPrinter paper width
 	const print = new thermalPrinter({
 		type: Types.EPSON,
-		width: 38,
+		width: 39,
+		interface: "\\\\Optiplex990\\TM88",
 	});
 
 	print.alignCenter();
@@ -70,19 +71,12 @@ function expenseTicket(fecha, usu_name, expenseList) {
 	print.cut();
 	print.openCashDrawer();
 
-	const data = print.getBuffer();
+	print.execute();
 
-	printer.printDirect({
-		data: data,
-		type: "RAW",
-		printer: "epson tm-t81 Receipt",
-		success: function (jobID) {
-			console.log("sent to printer with ID: " + jobID);
-		},
-		error: function (err) {
-			console.log(err);
-		},
-	});
+// 	const data = print.getBuffer();
+// 	Promise.resolve(print.getBuffer())
+//   .then(sendToPrinter)
+//   .catch((err) => console.error("print pipeline error:", err));
 }
 
 module.exports = expenseTicket;

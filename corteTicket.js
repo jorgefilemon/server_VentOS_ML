@@ -29,7 +29,7 @@ function realizarCorte(
 	const print = new thermalPrinter({
 		type: Types.EPSON,
 		width: 38,
-		interface: process.env.PRINTER_INTERFACE,
+		interface: "\\\\Optiplex990\\TM88",
 	});
 
 	print.alignCenter();

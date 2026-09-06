@@ -3,6 +3,7 @@ const {
 	types: Types,
 } = require("node-thermal-printer");
 const moment = require("moment");
+require("dotenv").config();
 
 function pullCashTicket(nombre, fecha, values) {
 	const onlyDate = moment(fecha).locale("es").format("DD/MM/YYYY");
@@ -16,7 +17,7 @@ function pullCashTicket(nombre, fecha, values) {
 	const print = new ThermalPrinter({
 		type: Types.EPSON,
 		width: 38,
-		interface: "\\\\jorge-PC\\TM88",
+		interface: "\\\\Optiplex990\\TM88",
 	});
 
 	print.alignLeft();
