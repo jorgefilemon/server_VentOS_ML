@@ -32,7 +32,7 @@ router.get("/", async (req, res) => {
             AND categoria.nombre NOT IN ('vales' , 'acessorios', 'cambio')
             AND venta.status = 1
         GROUP BY YEAR(fecha) , MONTH(fecha)
-        ORDER BY YEAR(fecha) DESC , MONTH(fecha) DESC;
+        ORDER BY YEAR(fecha) asc , MONTH(fecha) asc;
 	
       `;
 		
@@ -40,7 +40,7 @@ router.get("/", async (req, res) => {
 		const [rows] = await db.execute(query);
 		console.log("Query results:", rows);
 
-        const periodOrder = ['23 al fin', '16 al 22', '8 al 15', '1 al 7']; 
+        const periodOrder = ['1 al 7','8 al 15','16 al 22', '23 al fin' ]; 
 
         const transformedData = periodOrder.map(period => {
             const row = { period };

@@ -24,7 +24,6 @@
 		"node-windows": "*",
 		"sql-template-tag": "^5.2.1"
 	},
-
 	"devDependencies": {
 		"prettier": "^2.8.8"
 	}

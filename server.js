@@ -5,10 +5,11 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser"); // to parse the cookie
 
 const jwt = require("jsonwebtoken");
-
+const axios = require("axios");
 const https = require("https");
 const path = require("path");
 const fs = require("fs");
+const { getTokens } = require("./utils/mlAuth");
 
 // R O U T E S //
 
@@ -45,15 +46,33 @@ app.use("/login", loginRoute);
 // vefify user with jwt
 app.get("/verify", async (req, res, next) => {
 	const token = req.cookies.access_token;
-	const isConnected = Boolean(process.env.ACCESS_TOKEN); // Check if access token exists
 	try {
 		const { usu_id, nombre } = jwt.verify(token, "382u397429&$");
+
+		let connected = false;
+
+		try {
+			const tokens = await getTokens();
+			if (tokens?.access_token) {
+	await axios.get("https://api.mercadolibre.com/users/me", {
+		headers: {
+			Authorization: `Bearer ${tokens.access_token}`,
+		},
+		timeout: 5000,
+	});
+	connected = true;
+}
+		} catch {
+			console.error("Could not read Mercado Libre tokens");
+		}
+
+		res.set("Cache-Control", "no-store");
 
 		res.json({
 			usu_id: usu_id,
 			nombre: nombre,
 			logged: true,
-			connected: isConnected,
+			connected,
 		});
 
 		//next(); not neceesary as youre sendin json
@@ -96,8 +115,19 @@ app.use("/shoeSellsInPeriod", shoeSellsInPeriodRoute);
 
 app.use("/shoeSellsInTwoMonths", shoeSellsInTwoMonthsRoute);
 
-const privateKeyPath = path.join(__dirname, "cert", "server.key");
-const certificatePath = path.join(__dirname, "cert", "server.crt");
+// const privateKeyPath = path.join(__dirname, "cert", "server.key");
+// const certificatePath = path.join(__dirname, "cert", "server.crt");
+
+// const sslServer = https.createServer(
+// 	{
+// 		key: fs.readFileSync(privateKeyPath, "utf8"),
+// 		cert: fs.readFileSync(certificatePath, "utf8"),
+// 	},
+// 	app
+// );
+
+const privateKeyPath = path.join(__dirname, "localhost+2-key.pem");
+const certificatePath = path.join(__dirname, "localhost+2.pem");
 
 const sslServer = https.createServer(
 	{
@@ -106,6 +136,9 @@ const sslServer = https.createServer(
 	},
 	app
 );
+
+
+
 
 startMercadoLibreRetryJob();
 

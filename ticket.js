@@ -1,3 +1,4 @@
+const { getPrinterInterface } = require("./utils/printerConfig");
 const { printer: thermalPrinter, types: Types } = require("node-thermal-printer");
 
 const moment = require("moment");
@@ -33,7 +34,7 @@ function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
 	const print = new thermalPrinter({
 		type: Types.EPSON,
 		width: 38,
-		interface: "\\\\Optiplex990\\TM88",
+		interface: getPrinterInterface(),
 	});
 
 	print.print("\x1b\x33\x30");
@@ -67,6 +68,8 @@ function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
 	print.drawLine();
 	print.newLine();
 
+	let totalDescuento = 0;
+
 	for (let detallev of detalleven) {
 		print.alignLeft();
 		print.println(detallev.descripcion);
@@ -98,7 +101,33 @@ function realizarTicket(invoice, detallev, mov, pagoEfectivo) {
 			},
 		]);
 		print.drawLine();
+
+
+	// ✅ Calculate discount by comparing original total vs final total
+	const cantidad = Number(detallev.cantidad);
+	const precio = Number(detallev.precioCon);
+	const importe = Number(detallev.importeCon);
+	
+	// only normal sales affect savings
+	if (cantidad > 0 && precio * cantidad > 0 && importe > 0) {
+		totalDescuento += (precio * cantidad - importe);
 	}
+	}
+
+      // reset back to normal
+	  if (totalDescuento > 0 && Number(venta.total) >= 0) {
+		print.newLine();
+		print.alignRight();
+		print.bold(true);
+	
+		print.println(`USTED AHORRÓ: ${totalDescuento.toFixed(2)}`);
+	
+		print.bold(false);
+		
+	
+	
+	}
+
 
 	print.alignCenter();
 	print.newLine();
@@ -155,6 +184,22 @@ de uso y este se regrese en su
 empaque original.
 `);
 	print.newLine();
+
+const ventaString = venta.tic_id.toString();
+let fechaString = moment(venta.fecha).format("YYMM")
+
+
+const barcodeData = ventaString+fechaString
+
+var settings = {         // Optional Settings
+	hriPos: 0,             // Human readable character 0 - 3 (none, top, bottom, both)
+	hriFont: 0,            // Human readable character font
+	width: 3,              // Barcode width
+	height: 140            // Barcode height
+  }
+
+	print.printBarcode(barcodeData, 69, settings); // Code128 type
+	print.println(barcodeData)
 
 	print.cut();
 

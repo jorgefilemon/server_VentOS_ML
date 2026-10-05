@@ -1,3 +1,4 @@
+const { getPrinterInterface } = require("./utils/printerConfig");
 const {
 	printer: ThermalPrinter,
 	types: Types,
@@ -17,7 +18,7 @@ function pullCashTicket(nombre, fecha, values) {
 	const print = new ThermalPrinter({
 		type: Types.EPSON,
 		width: 38,
-		interface: "\\\\Optiplex990\\TM88",
+		interface: getPrinterInterface(),
 	});
 
 	print.alignLeft();

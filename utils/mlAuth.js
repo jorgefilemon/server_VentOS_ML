@@ -1,20 +1,41 @@
-  require("dotenv").config();
+﻿require("dotenv").config();
 const axios = require("axios");
-
+const db = require("../database");
 let renewIntervalId;
 
-const updateTokens = (data) => {
-	process.env.ACCESS_TOKEN = data.access_token;
-	process.env.REFRESH_TOKEN = data.refresh_token;
+const getTokens = async () => {
+	const [rows] = await db.query(
+		"SELECT access_token, refresh_token FROM mercadotokens WHERE id = ?",
+		[1]
+	);
+
+	return rows[0] || null;
+};
+
+const updateTokens = async (data) => {
+	await db.query(
+		`INSERT INTO mercadotokens (id, access_token, refresh_token)
+		 VALUES (?, ?, ?)
+		 ON DUPLICATE KEY UPDATE
+		 access_token = VALUES(access_token),
+		 refresh_token = VALUES(refresh_token)`,
+		[1, data.access_token, data.refresh_token]
+	);
 
 	return {
-		access_token: process.env.ACCESS_TOKEN,
-		refresh_token: process.env.REFRESH_TOKEN,
+		access_token: data.access_token,
+		refresh_token: data.refresh_token,
 	};
 };
 
 const renewAccessToken = async () => {
 	console.log("triggering refresh token");
+
+	const storedTokens = await getTokens();
+
+	if (!storedTokens?.refresh_token) {
+	throw new Error("No Mercado Libre refresh token saved");
+	}
 
 	const response = await axios.post(
 		"https://api.mercadolibre.com/oauth/token",
@@ -22,16 +43,14 @@ const renewAccessToken = async () => {
 			grant_type: "refresh_token",
 			client_id: process.env.CLIENT_ID,
 			client_secret: process.env.CLIENT_SECRET,
-			refresh_token: process.env.REFRESH_TOKEN,
+			refresh_token: storedTokens.refresh_token,
 		}
 	);
 
-	const tokens = updateTokens(response.data);
-	console.log("Access token renewed successfully!", tokens);
-
+	const tokens = await updateTokens(response.data);
+	console.log("Access token renewed successfully!");
 	return tokens;
 };
-
 const exchangeAuthorizationCode = async (code) => {
 	const response = await axios.post(
 		"https://api.mercadolibre.com/oauth/token",
@@ -48,9 +67,7 @@ const exchangeAuthorizationCode = async (code) => {
 };
 
 const ensureRenewScheduler = () => {
-	if (renewIntervalId) {
-		return renewIntervalId;
-	}
+	if (renewIntervalId) return renewIntervalId;
 
 	renewIntervalId = setInterval(() => {
 		renewAccessToken().catch((error) => {
@@ -68,4 +85,5 @@ module.exports = {
 	exchangeAuthorizationCode,
 	ensureRenewScheduler,
 	renewAccessToken,
+	getTokens,
 };

@@ -12,9 +12,9 @@ router.get("/", async (req, res) => {
 
 	try {
 		const code = req.query.code;
-		const tokens = await exchangeAuthorizationCode(code);
+		await exchangeAuthorizationCode(code);
 
-		console.log(tokens);
+		console.log("Mercado Libre connected.");
 		ensureRenewScheduler();
 	} catch (error) {
 		console.error(

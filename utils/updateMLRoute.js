@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { getTokens } = require("./mlAuth");
 
 function findAttributeValue(attributes = [], attributeId) {
     const attr = attributes.find(function (attribute) {
@@ -10,11 +11,21 @@ function findAttributeValue(attributes = [], attributeId) {
 
 async function updateMercadoLibreStock(sellerSku) {
     try {
+        const tokens = await getTokens();
+        if (!tokens?.access_token) {
+            return {
+                ok: false,
+                status: 401,
+                seller_sku: sellerSku,
+                message: "No hay un token de Mercado Libre guardado",
+            };
+        }
+
         const searchResponse = await axios.get(
             `https://api.mercadolibre.com/users/${process.env.USER_ID}/items/search?seller_sku=${sellerSku}`,
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+                    Authorization: `Bearer ${tokens.access_token}`,
                 },
             }
         );
@@ -35,7 +46,7 @@ async function updateMercadoLibreStock(sellerSku) {
             `https://api.mercadolibre.com/items/${itemId}?include_attributes=all`,
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+                    Authorization: `Bearer ${tokens.access_token}`,
                 },
             }
         );
@@ -103,7 +114,7 @@ async function updateMercadoLibreStock(sellerSku) {
                 data,
                 {
                     headers: {
-                        Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+                        Authorization: `Bearer ${tokens.access_token}`,
                     },
                 }
             );
@@ -160,7 +171,7 @@ async function updateMercadoLibreStock(sellerSku) {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+                    Authorization: `Bearer ${tokens.access_token}`,
                 },
             }
         );

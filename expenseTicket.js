@@ -1,3 +1,4 @@
+const { getPrinterInterface } = require("./utils/printerConfig");
 // const { sendToPrinter } = require("./utils/networkPrinter");
 const thermalPrinter = require("node-thermal-printer").printer;
 const Types = require("node-thermal-printer").types;
@@ -20,7 +21,7 @@ function expenseTicket(fecha, usu_name, expenseList) {
 	const print = new thermalPrinter({
 		type: Types.EPSON,
 		width: 39,
-		interface: "\\\\Optiplex990\\TM88",
+		interface: getPrinterInterface(),
 	});
 
 	print.alignCenter();

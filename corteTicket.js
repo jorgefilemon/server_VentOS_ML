@@ -1,3 +1,4 @@
+const { getPrinterInterface } = require("./utils/printerConfig");
 //  
 const thermalPrinter = require("node-thermal-printer").printer;
 const Types = require("node-thermal-printer").types;
@@ -29,7 +30,7 @@ function realizarCorte(
 	const print = new thermalPrinter({
 		type: Types.EPSON,
 		width: 38,
-		interface: "\\\\Optiplex990\\TM88",
+		interface: getPrinterInterface(),
 	});
 
 	print.alignCenter();
