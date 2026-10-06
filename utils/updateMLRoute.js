@@ -128,7 +128,6 @@ async function updateMercadoLibreStock(sellerSku) {
                 seller_sku: sellerSku,
                 old_quantity: currentQuantity,
                 new_quantity: newQuantity,
-                updated_date: updatedDate,
             };
 
 

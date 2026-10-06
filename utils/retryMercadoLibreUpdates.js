@@ -1,16 +1,19 @@
 // server/utils/retryMercadoLibre.js
 const db = require("../database");
 const updateMLRoute = require("./updateMLRoute");
+const { getTokens } = require("./mlAuth");
 
 async function retryMercadoLibreUpdates() {
-
-    	if (!process.env.ACCESS_TOKEN) {
-		console.log("ML retry skipped: no access token");
-		return;
-	}
-	const conn = await db.getConnection();
+	let conn;
 
 	try {
+		const tokens = await getTokens();
+		if (!tokens?.access_token) {
+			console.log("ML retry skipped: no access token in database");
+			return;
+		}
+		conn = await db.getConnection();
+
 		const [pendingRows] = await conn.query(
 			`SELECT ml_id, seller_sku
 			 FROM mercadolibre
@@ -47,7 +50,7 @@ async function retryMercadoLibreUpdates() {
 	} catch (error) {
 		console.error("Mercado Libre retry job error:", error);
 	} finally {
-		conn.release();
+		if (conn) conn.release();
 	}
 }
 
