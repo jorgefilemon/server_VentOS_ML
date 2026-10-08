@@ -316,7 +316,15 @@ router.post("/", async (req, res) => {
 				let message = "";
 
 				if (value?.ok === false) {
-					message = `El producto con la clave "${sku}" no se esta vendiendo en Mercado Libre`;
+					if (value.status === 404) {
+						// Preserve the specific "not listed" or "variant not found" message.
+						message = value.message ||
+							`No se encontró el producto con la clave "${sku}" en Mercado Libre`;
+					} else if (value.status === 401) {
+						message = `No se pudo actualizar el producto con la clave "${sku}" porque Mercado Libre no está conectado`;
+					} else {
+						message = `No se pudo actualizar la existencia del producto con la clave "${sku}" en Mercado Libre. Revisa su existencia manualmente`;
+					}
 				} else if (value?.new_quantity === 0 && value?.old_quantity === 0) {
 					message = `El producto con la clave "${sku}" ya tiene existencia 0 en Mercado Libre`;
 				} else {

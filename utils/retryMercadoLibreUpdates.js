@@ -55,16 +55,17 @@ async function retryMercadoLibreUpdates() {
 }
 
 function startMercadoLibreRetryJob() {
-	const thirtyMinutes = 30 * 60 * 1000;
+	// Automatic retries disabled (scheduled and on startup).
+	// const thirtyMinutes = 30 * 60 * 1000;
 
     
 
-	setInterval(() => {
-		retryMercadoLibreUpdates();
-	}, thirtyMinutes);
+	// setInterval(() => {
+	// 	retryMercadoLibreUpdates();
+	// }, thirtyMinutes);
 
 	// Optional: run once when server starts
-	retryMercadoLibreUpdates();
+	// retryMercadoLibreUpdates();
 }
 
 module.exports = startMercadoLibreRetryJob;
