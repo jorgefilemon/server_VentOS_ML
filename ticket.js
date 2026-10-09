@@ -205,7 +205,7 @@ var settings = {         // Optional Settings
 
 	print.openCashDrawer();
 
-	print.execute();
+	return print.execute();
 
 	// Promise.resolve(print.getBuffer())
 	// 	.then(sendToPrinter)

@@ -3,6 +3,7 @@ const moment = require("moment");
 
 const db = require("../database");
 const realizarTicket = require("../ticket");
+const mercadoLibreWarningTicket = require("../mercadoLibreWarningTicket");
 const updateMLRoute = require("../utils/updateMLRoute");
 
 const router = express.Router();
@@ -248,6 +249,11 @@ router.post("/", async (req, res) => {
 
 		const pagoEfectivo = efectivo;
 
+		const [[salesperson]] = await conn.query(
+			"SELECT nombre FROM usuario WHERE usu_id = ?",
+			[usu_id]
+		);
+
 		await conn.commit();
 
 		let mlResults = [];
@@ -260,6 +266,7 @@ router.post("/", async (req, res) => {
 
 			const mercadolibreValues = mlProducts.map((product) => [
 				ven_id,
+				usu_id,
 				product.art_id,
 				product.clave,
 				product.cantidad,
@@ -271,6 +278,7 @@ router.post("/", async (req, res) => {
 			await conn.query(
 				`INSERT INTO mercadolibre (
 					ven_id,
+					usu_id,
 					art_id,
 					seller_sku,
 					cantidad,
@@ -308,42 +316,22 @@ router.post("/", async (req, res) => {
 		}
 
 
-		mlResults = settledResults.map((result, index) => {
-			if (result.status === "fulfilled") {
-				const value = result.value;
-				const sku = value?.seller_sku || mlItems[index];
+		mlResults = settledResults.map(({ value }, index) => {
+			const sku = value?.seller_sku || mlItems[index];
 
-				let message = "";
-
-				if (value?.ok === false) {
-					if (value.status === 404) {
-						// Preserve the specific "not listed" or "variant not found" message.
-						message = value.message ||
-							`No se encontró el producto con la clave "${sku}" en Mercado Libre`;
-					} else if (value.status === 401) {
-						message = `No se pudo actualizar el producto con la clave "${sku}" porque Mercado Libre no está conectado`;
-					} else {
-						message = `No se pudo actualizar la existencia del producto con la clave "${sku}" en Mercado Libre. Revisa su existencia manualmente`;
-					}
-				} else if (value?.new_quantity === 0 && value?.old_quantity === 0) {
-					message = `El producto con la clave "${sku}" ya tiene existencia 0 en Mercado Libre`;
-				} else {
-					message = `Se actualizo la existencia en Mercado Libre del producto ${sku}. Existencia anterior: ${value?.old_quantity}, Existencia Actual: ${value?.new_quantity}`;
-				}
-
-				return {
-					seller_sku: sku,
-					message,
-				};
-			}
-
-			return {
-				seller_sku: mlItems[index],
-				message:
-					result.reason?.message ||
-					`Error al actualizar el producto con la clave "${mlItems[index]}" en Mercado Libre`,
+			const outcomes = {
+				notFound: `No se encontró el producto con la clave "${sku}" en Mercado Libre`,
+				failed: `No se pudo actualizar el producto con la clave "${sku}" en Mercado Libre`,
+				zeroStock: `El producto con la clave "${sku}" ya tiene existencia 0 en Mercado Libre`,
+				updated: `Se actualizó la existencia en Mercado Libre del producto ${sku}. Existencia anterior: ${value?.old_quantity}, Existencia Actual: ${value?.new_quantity}`,
 			};
-		});
+
+			const outcome = value?.status === 404 ? "notFound"
+				: value?.ok !== true ? "failed"
+				: value.old_quantity === 0 && value.new_quantity === 0 ? "zeroStock"
+				: "updated";
+
+			return { seller_sku: sku, outcome, message: outcomes[outcome] };		});
 
 		console.log("ML update results", mlResults);
 	} catch (error) {
@@ -351,16 +339,37 @@ router.post("/", async (req, res) => {
 
 		mlResults = mlItems.map((sellerSku) => ({
 			seller_sku: sellerSku,
-			message: `No se pudo actualizar Mercado Libre para la clave "${sellerSku}"`,
+			outcome: "failed",
+			message: `No se pudo actualizar el producto con la clave "${sellerSku}" en Mercado Libre`,
 		}));
 	}
 } else {
 	console.log("this item is not sold in ML");
 }
+		const mlWarnings = mlResults.filter(({ outcome }) =>
+			["notFound", "failed"].includes(outcome)
+		);
 
+		const warningProducts = mlWarnings.map(({ seller_sku }) => ({
+   			 clave: seller_sku,
+    		descripcion: products.find(
+        	(product) => product.clave === seller_sku
+    		).descripcion,
+		}));
 
+		try {
+			await realizarTicket(invoice, detallev, mov, pagoEfectivo);
+		} catch (error) {
+			console.error("Sales ticket printing failed:", error);
+		}
 
-		realizarTicket(invoice, detallev, mov, pagoEfectivo);
+		if (warningProducts.length > 0) {
+			try {
+				await mercadoLibreWarningTicket(warningProducts, salesperson.nombre);
+			} catch (error) {
+				console.error("Mercado Libre warning ticket printing failed:", error);
+			}
+		}
 
 		// console.log("venta inserted", invoice);
 		// console.log("products", products);

@@ -54,16 +54,21 @@ app.get("/verify", async (req, res, next) => {
 		try {
 			const tokens = await getTokens();
 			if (tokens?.access_token) {
-	await axios.get("https://api.mercadolibre.com/users/me", {
-		headers: {
-			Authorization: `Bearer ${tokens.access_token}`,
-		},
-		timeout: 5000,
-	});
-	connected = true;
-}
-		} catch {
-			console.error("Could not read Mercado Libre tokens");
+				await axios.get("https://api.mercadolibre.com/users/me", {
+					headers: {
+						Authorization: `Bearer ${tokens.access_token}`,
+					},
+					timeout: 5000,
+				});
+				connected = true;
+			}
+		} catch (error) {
+			console.error(
+				axios.isAxiosError(error)
+					? "Mercado Libre connection check failed"
+					: "Could not read Mercado Libre tokens from database",
+				{ code: error.code, status: error.response?.status }
+			);
 		}
 
 		res.set("Cache-Control", "no-store");
