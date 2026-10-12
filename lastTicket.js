@@ -47,7 +47,7 @@ function ultimoTicket(invoice, detallev, mov) {
 	print.println("CP 78000");
 	print.println("ventas@zapaterialolita.com");
 	print.println("Tel 444 812 3404");
-	print.println("WhatsApp: 444 775 0015");
+	print.println("WhatsApp: 444 200 9246");
 	print.println("facebook: zapaterialolita.mx");
 
 	print.drawLine();
