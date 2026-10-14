@@ -133,8 +133,8 @@ function realizarCorte(
 	print.println("<<<<<<< RELACION CAJA >>>>>>>");
 	print.newLine();
 	print.tableCustom([
-		{ text: "EN CAJA", align: "CENTER", width: 0.4, cols: 1 },
-		{ text: "GUARDADO", align: "CENTER", width: 0.4, cols: 1 },
+		{ text: "EN CAJA", align: "RIGHT", width: 0.4, cols: 1 },
+		{ text: "GUARDADO", align: "RIGHT", width: 0.4, cols: 1 },
 	]);
 
 	const skipIndices = [0, 10, 11];
@@ -154,8 +154,8 @@ function realizarCorte(
 				: parseFloat(filteredValuesGuardar[i] || 0);
 
 		print.tableCustom([
-			{ text: displayCaja, align: "CENTER", width: 0.4, cols: 1 },
-			{ text: displayGuardar, align: "CENTER", width: 0.4, cols: 1 },
+			{ text: displayCaja, align: "RIGHT", width: 0.4, cols: 1 },
+			{ text: displayGuardar, align: "RIGHT", width: 0.4, cols: 1 },
 		]);
 
 		// Draw line after 3rd and 8th rows
