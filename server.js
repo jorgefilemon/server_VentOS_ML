@@ -5,11 +5,10 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser"); // to parse the cookie
 
 const jwt = require("jsonwebtoken");
-const axios = require("axios");
 const https = require("https");
 const path = require("path");
 const fs = require("fs");
-const { getTokens } = require("./utils/mlAuth");
+const mercadoAuth = require("./utils/mlAuth");
 
 // R O U T E S //
 
@@ -25,8 +24,7 @@ const shoeSellsInPeriodRoute = require("./routes/shoeSellsInPeriod");
 const shoeSellsInTwoMonthsRoute = require("./routes/shoeSellsInTwoMonths");
 const ventaRoute = require("./routes/venta");
 const callbackRoute = require("./routes/callback.js");
-const startMercadoLibreRetryJob = require("./utils/retryMercadoLibreUpdates.js");
-
+// const startMercadoLibreRetryJob = require("./utils/retryMercadoLibreUpdates.js");
 
 app.use(express.json());
 // why?
@@ -37,7 +35,7 @@ app.use(
 		credentials: true, // so axios can work.
 		origin: ["http://localhost:3000"],
 		methods: ["GET", "POST"],
-	})
+	}),
 );
 
 // login authenticate
@@ -52,23 +50,12 @@ app.get("/verify", async (req, res, next) => {
 		let connected = false;
 
 		try {
-			const tokens = await getTokens();
-			if (tokens?.access_token) {
-				await axios.get("https://api.mercadolibre.com/users/me", {
-					headers: {
-						Authorization: `Bearer ${tokens.access_token}`,
-					},
-					timeout: 5000,
-				});
-				connected = true;
-			}
+			const tokens = await mercadoAuth.getTokens();
+			connected = Boolean(tokens?.access_token && tokens?.refresh_token);
 		} catch (error) {
-			console.error(
-				axios.isAxiosError(error)
-					? "Mercado Libre connection check failed"
-					: "Could not read Mercado Libre tokens from database",
-				{ code: error.code, status: error.response?.status }
-			);
+			console.error("Could not read Mercado Libre tokens from database", {
+				code: error.code,
+			});
 		}
 
 		res.set("Cache-Control", "no-store");
@@ -113,43 +100,28 @@ app.use("/expense", expenseRoute);
 app.use("/search", searchRoute);
 // venta
 app.use("/venta", ventaRoute);
-// calback from mercado libre.
+// calback from mercado libre. (POS wont deal with the authO anymore)
 app.use("/callback", callbackRoute);
 
 app.use("/shoeSellsInPeriod", shoeSellsInPeriodRoute);
 
 app.use("/shoeSellsInTwoMonths", shoeSellsInTwoMonthsRoute);
 
-// const privateKeyPath = path.join(__dirname, "cert", "server.key");
-// const certificatePath = path.join(__dirname, "cert", "server.crt");
-
-// const sslServer = https.createServer(
-// 	{
-// 		key: fs.readFileSync(privateKeyPath, "utf8"),
-// 		cert: fs.readFileSync(certificatePath, "utf8"),
-// 	},
-// 	app
-// );
-
-const privateKeyPath = path.join(__dirname, "localhost+2-key.pem");
-const certificatePath = path.join(__dirname, "localhost+2.pem");
+const privateKeyPath = path.join(__dirname, "cert", "localhost+2-key.pem");
+const certificatePath = path.join(__dirname, "cert", "localhost+2.pem");
 
 const sslServer = https.createServer(
 	{
 		key: fs.readFileSync(privateKeyPath, "utf8"),
 		cert: fs.readFileSync(certificatePath, "utf8"),
 	},
-	app
+	app,
 );
 
+mercadoAuth.start();
 
-
-
-startMercadoLibreRetryJob();
-
-//
 sslServer.listen(process.env.NODEPORT, () =>
 	console.log(
-		`server running on port ${process.env.NODEPORT}, MYSQL port ${process.env.MYSQL_PORT}`
-	)
+		`server running on port ${process.env.NODEPORT}, MYSQL port ${process.env.MYSQL_PORT}`,
+	),
 );

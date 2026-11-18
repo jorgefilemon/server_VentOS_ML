@@ -55,6 +55,9 @@ router.post("/", async (req, res) => {
 		}
 	} catch (error) {
 		console.error(error);
+		res.status(500).json({ message: "Unable to sign in. Please try again." });
+	} finally {
+		conn.release();
 	}
 });
 
